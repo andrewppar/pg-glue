@@ -1,0 +1,30 @@
+* PG Glue
+
+This is still very much a work in progress.
+
+** Quickstart
+
+Example configuration:
+#+name: quickstart.straight
+#+begin_src emacs-lisp
+(use-package pg-glue
+  :straight
+  (pg-glue
+   :host github :repo "andrewppar/pg-glue"
+   :files (:defaults "*.el" "connect/*.el" "query/*.el" "metadata/*.el" "view/*.el")))
+#+end_src
+
+Unfortunately, this assumes that database connections are managed in 1password. That will change soon. But if you do have your db passwords in 1password, you can use the following to connect to a database:
+#+begin_src emacs-lisp
+(pg-glue-connect "my-db")
+#+end_src
+
+Where "my-db" is the name of the database in 1password.
+
+** Features
+
+- Connect to a database
+- Run a query using =pg/query= and passing a string in a emacs-lisp repl
+- Run a paragraph in a sql file (ends in =;=) and display the results in an overlay (=pg-glue/query-paragarph=)
+- see the tables in the database with =pg-glue/tables=
+- see the columns of a table with =pg-glue/columns=
