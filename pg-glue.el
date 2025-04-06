@@ -98,7 +98,7 @@ buffer content."
 	   (select-window (get-buffer-window ,buffer-name)))))))
 
 ;;;###autoload
-(defun pg-glue/tables (schema)
+(defun pg-glue/schema (schema)
   "Show the tables for SCHEMA at the current connection."
   (interactive
    (progn
@@ -106,20 +106,13 @@ buffer content."
      (list
       (completing-read "schema: " (pg-glue-metadata/schemas) nil t))))
   (pg-glue--ensure-connected)
-  (let ((header (format "Tables: %s" schema))
-	(buffer-name (format "pg-glue: %s tables" schema)))
+  (let ((buffer-name (format "pg-glue: %s tables" schema)))
     (with-pg-glue-buffer buffer-name
       (insert
-       (string-join
-	(append
-	 (list header
-	       (pg-glue-view/colorize
-		(make-string (length header) ?\=) :light-blue))
-	 (pg-glue-metadata/tables schema))
-	"\n")))))
+       (pg-glue-view/schema schema (pg-glue-metadata/tables schema))))))
 
 ;;;###autoload
-(defun pg-glue/columns (schema table)
+(defun pg-glue/table (schema table)
   "Show the columns for TABLE in SCHEMA."
   (interactive
    (let* ((select-schema (completing-read
@@ -128,30 +121,13 @@ buffer content."
 			 "table: "  (pg-glue-metadata/tables select-schema) nil t)))
      (pg-glue--ensure-connected)
      (list select-schema select-table)))
-  (let* ((header (format "Table: %s.%s" schema table))
-	 (buffer-name (format "%s: columns" table))
-	 (columns (pg-glue-metadata/columns schema table))
-	 (maxes (pg-glue-view/key-maxes columns))
-	 (divider (pg-glue-view/colorize
-		   (make-string (apply #'+ (pg-glue-utils/vals maxes)) ?\=)
-		   :light-blue)))
+  (let ((buffer-name (format "%s: columns" table))
+	(columns (pg-glue-metadata/columns schema table))
+	(primary-key (pg-glue-metadata/primary-key schema table))
+	(foreign-keys (pg-glue-metadata/foreign-keys schema table)))
     (with-pg-glue-buffer buffer-name
       (insert
-       (string-join
-	(append (list header divider)
-		(mapcar
-		 (lambda (column)
-		   (let* ((name-cell (pg-glue-view/format-cell
-				      column maxes "name"))
-			  (type-cell (pg-glue-view/color-column-type
-				      (pg-glue-view/format-cell
-				       column maxes "type")))
-			  (default-cell (pg-glue-view/format-cell
-					 column maxes "default")))
-		     (format "|%s|%s|%s" name-cell type-cell default-cell)))
-		 columns)
-		(list divider))
-	"\n")))))
+       (pg-glue-view/table schema table columns primary-key foreign-keys)))))
 
 (provide 'pg-glue)
 ;;; pg-glue.el ends here

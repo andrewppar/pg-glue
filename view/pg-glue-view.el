@@ -12,7 +12,7 @@
 (require 'subr-x)
 
 
-(defun pg-glue-view/key-maxes (plists)
+(defun pg-glue-view--key-maxes (plists)
   "The maximum value for each column in PLISTS."
   (seq-reduce
    (lambda (maxes plist)
@@ -49,7 +49,7 @@ The max values for key from PADDING-SPEC is used to calcuate padding."
 (defconst pg-glue-view/orange "#fab387")
 (defconst pg-glue-view/yellow "#f9e2af")
 
-(defun pg-glue-view/colorize (text color)
+(defun pg-glue-view--colorize (text color)
   "Draw TEXT in COLOR."
   (let ((hex-color (cl-case color
 		     (:red pg-glue-view/red)
@@ -61,9 +61,20 @@ The max values for key from PADDING-SPEC is used to calcuate padding."
 		     (:yellow pg-glue-view/yellow))))
     (propertize text 'face `(:foreground ,hex-color))))
 
+(defun pg-glue-view/schema (schema tables)
+  "Draw a table view for TABLES in SCHEMA."
+  (let ((header (format "Tables: %s" schema)))
+    (string-join
+     (append
+      (list header
+	    (pg-glue-view--colorize
+	     (make-string (length header) ?\=) :light-blue))
+      tables)
+     "\n")))
+
 (defun pg-glue-view/color-column-type (column-type)
   "Add color to COLUMN-TYPE."
-  (pg-glue-view/colorize
+  (pg-glue-view--colorize
    column-type (cond ((equal (string-trim column-type) "uuid") :yellow)
 		     ((equal (string-trim column-type) "jsonb") :blue)
 		     ((equal (string-trim column-type) "boolean") :orange)
@@ -73,7 +84,94 @@ The max values for key from PADDING-SPEC is used to calcuate padding."
 			     "timestamp without time zone") :grey)
 		     (t 'default))))
 
+(defun pg-glue-view/primary-key (primary-key)
+  "Draw a view of PRIMARY-KEY."
+  (let ((name (pg-glue-utils/get primary-key "name"))
+	(columns (pg-glue-utils/get primary-key "columns")))
+    (string-join
+     (list (pg-glue-view--colorize "primary key" :light-blue)
+	   (format "%s on %s" (pg-glue-view--colorize name :green) columns))
+     "\n")))
 
+
+(defun pg-glue-view--keys (foreign-keys direction)
+  "Draw FOREIGN-KEYS in DIRECTION."
+  (let* ((divider (cl-case direction
+		    (:foreign (pg-glue-view--colorize "<---" :yellow))
+		    (:domestic (pg-glue-view--colorize "--->" :green))))
+	 (key (substring (format "%s" direction) 1))
+	 (opposite
+	  (cl-case direction (:foreign "domestic") (:domestic "foreign")))
+	 (table-key (format "%s-table" opposite))
+	 (column-key (format "%s-columns" opposite))
+	 (specs (mapcar
+		 (lambda (foreign-key)
+		   (list
+		    :name (pg-glue-view--colorize
+			   (pg-glue-utils/get foreign-key "name")
+			   :red)
+		    :columns (format "%s" (pg-glue-utils/get foreign-key "columns"))
+		    :divider divider
+		    :other-table (pg-glue-utils/get foreign-key table-key)
+		    :other-columns (format "%s" (pg-glue-utils/get foreign-key column-key))))
+		 (pg-glue-utils/get foreign-keys (format "%s-key" key))))
+	 (maxes (pg-glue-view--key-maxes specs)))
+    (string-join
+     (mapcar
+      (lambda (foreign-key)
+	(seq-reduce
+	 (lambda (result key)
+	   (format "%s%s"
+		   result (pg-glue-view/format-cell foreign-key maxes key)))
+	 (list :name :columns :divider :other-table :other-columns)
+	 ""))
+      specs)
+     "\n")))
+
+(defun pg-glue-view/foreign-keys (foreign-keys)
+  "Draw a table for the foreign-keys of FOREIGN-KEYS."
+  (pg-glue-view--keys foreign-keys :foreign))
+
+(defun pg-glue-view/domestic-keys (foreign-keys)
+  "Draw a table for the domestic-keys of FOREIGN-KEYS."
+  (pg-glue-view--keys foreign-keys :domestic))
+
+(defun pg-glue-view/columns (schema table columns)
+  "Draw the COLUMNS for TABLE in SCHEMA."
+  (let* ((header (format "Table: %s.%s" schema table))
+	 (maxes (pg-glue-view--key-maxes columns))
+	 (divider (pg-glue-view--colorize
+		   (make-string (+ (apply #'+ (pg-glue-utils/vals maxes)) 2) ?\=)
+		   :light-blue)))
+    (insert
+     (string-join
+      (append (list header divider)
+	      (mapcar
+	       (lambda (column)
+		 (let* ((name-cell (pg-glue-view/format-cell
+				    column maxes "name"))
+			(type-cell (pg-glue-view/color-column-type
+				    (pg-glue-view/format-cell
+				     column maxes "type")))
+			(default-cell (pg-glue-view/format-cell
+				       column maxes "default")))
+		   (format "|%s|%s|%s" name-cell type-cell default-cell)))
+	       columns)
+	      (list divider))
+      "\n"))))
+
+(defun pg-glue-view/table (schema table columns primary-key foreign-keys)
+  "Describe TABLE in SCHEMA with COLUMNS and FOREIGN-KEYS."
+  (string-join
+   (list
+    (pg-glue-view/columns schema table columns)
+    ""
+    (pg-glue-view/primary-key primary-key)
+    ""
+    (pg-glue-view--colorize "foreign keys" :light-blue)
+    (pg-glue-view/domestic-keys foreign-keys)
+    (pg-glue-view/foreign-keys foreign-keys))
+   "\n"))
 
 (provide 'pg-glue-view)
 ;;; pg-glue-view.el ends here
