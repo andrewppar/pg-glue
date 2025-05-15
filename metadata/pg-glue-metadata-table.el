@@ -30,6 +30,7 @@
     "where"
     "  (relkind = 'r' or relkind = 'p')"
     (format "  and n.nspname = '%s'" schema)
+    "  and not attisdropped"
     "  and attnum > 0")
    "\n"))
 
