@@ -37,6 +37,7 @@ Example:
 		   (type (cadr col))
 		   (raw-val (nth idx row))
 		   (val (cond ((= type 1184) (decode-time raw-val "UTC0"))
+			      ((= type 1114) (decode-time raw-val "UTC0"))
 			      (t raw-val))))
 	      (if (equal output-format 'alist)
 		  (cons (cons col val) new-row)
