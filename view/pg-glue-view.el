@@ -173,5 +173,34 @@ The max values for key from PADDING-SPEC is used to calcuate padding."
     (pg-glue-view/foreign-keys foreign-keys))
    "\n"))
 
+(defun pg-glue-view/query-result (query-results)
+  "Format QUERY-RESULTS to be displayed in a standalone buffer.
+NOTE: QUERY-RESULTS has to be returned as ':table from pg-query-query/query."
+  (let* ((columns (pg-glue-utils/keys (car query-results)))
+	 (header-row (mapcan (lambda (column) (list column column)) columns))
+	 (maxes (pg-glue-view--key-maxes query-results))
+	 (header (format "|%s|"
+			 (string-join
+			  (mapcar
+			   (lambda (column)
+			     (pg-glue-view/format-cell header-row maxes column))
+			   columns)
+			  "|")))
+	 (divider (string-replace "|" "+" (replace-regexp-in-string "[^|]" "-" header)))
+	 (formatted-rows (mapcar
+			  (lambda (row)
+			    (format "|%s|"
+				    (string-join
+				     (mapcar
+				      (lambda (column)
+					(pg-glue-view/format-cell row maxes column))
+				      columns)
+				     "|")))
+			  query-results))
+	 (body (reverse (cons divider (reverse (cdr formatted-rows))))))
+    (string-join
+     (cons divider (cons header (cons divider body)))
+     "\n")))
+
 (provide 'pg-glue-view)
 ;;; pg-glue-view.el ends here

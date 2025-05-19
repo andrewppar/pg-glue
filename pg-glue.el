@@ -98,6 +98,20 @@ buffer content."
 	   (select-window (get-buffer-window ,buffer-name)))))))
 
 ;;;###autoload
+(defun pg-glue/pprint-query-paragraph ()
+  "Run the query at point against the current database.
+Display the results as an org mode table in another buffer."
+  (interactive)
+  (pg-glue--ensure-connected)
+  (let ((query nil))
+    (save-excursion
+      (let* ((start (progn (backward-paragraph) (point)))
+	     (end (progn (forward-paragraph) (point))))
+	(setq query (buffer-substring-no-properties start end))))
+    (with-pg-glue-buffer "*pg-glue result*"
+      (insert (pg-glue-view/query-result (pg-glue/query query))))))
+
+;;;###autoload
 (defun pg-glue/schema (schema)
   "Show the tables for SCHEMA at the current connection."
   (interactive
