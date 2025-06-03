@@ -178,7 +178,7 @@ The max values for key from PADDING-SPEC is used to calcuate padding."
 NOTE: QUERY-RESULTS has to be returned as ':table from pg-query-query/query."
   (let* ((columns (pg-glue-utils/keys (car query-results)))
 	 (header-row (mapcan (lambda (column) (list column column)) columns))
-	 (maxes (pg-glue-view--key-maxes query-results))
+	 (maxes (pg-glue-view--key-maxes (cons header-row query-results)))
 	 (header (format "|%s|"
 			 (string-join
 			  (mapcar
@@ -197,7 +197,7 @@ NOTE: QUERY-RESULTS has to be returned as ':table from pg-query-query/query."
 				      columns)
 				     "|")))
 			  query-results))
-	 (body (reverse (cons divider (reverse (cdr formatted-rows))))))
+	 (body (reverse (cons divider (reverse formatted-rows)))))
     (string-join
      (cons divider (cons header (cons divider body)))
      "\n")))
