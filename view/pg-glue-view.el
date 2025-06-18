@@ -23,7 +23,7 @@
 	 result key
 	 (lambda (x y)
 	   (max (or x 0)
-		(if (numberp y) y (length y))))
+		(if (numberp y) (length (format "%s" y)) (length y))))
 	 value))
       (lambda (_x) nil)
       maxes))
@@ -36,6 +36,8 @@ The max values for key from PADDING-SPEC is used to calcuate padding."
   (let* ((cell-string (or (pg-glue-utils/get plist key) ""))
 	 (pad-amount (thread-last
 		       cell-string
+		       (format "%s")
+		       string-trim
 		       length
 		       (- (or (pg-glue-utils/get padding-spec key) 0))
 		       (+ 1))))
