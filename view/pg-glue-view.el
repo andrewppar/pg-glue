@@ -11,6 +11,18 @@
 (require 'pg-glue-utils)
 (require 'subr-x)
 
+(defun pg-glue-view--parse-cell (cell)
+  "Parse CELL into the value it will be shown as."
+  (string-trim
+   (cond ((numberp cell)
+	  (format "%s" cell))
+	 ((stringp cell)
+	  cell)
+	 ((and cell (listp cell))
+	  (format-time-string "%Y-%m-%dT%H:%M:%S" (encode-time cell)))
+	 ((not cell)
+	  "")
+	 (t cell))))
 
 (defun pg-glue-view--key-maxes (plists)
   "The maximum value for each column in PLISTS."
@@ -23,7 +35,7 @@
 	 result key
 	 (lambda (x y)
 	   (max (or x 0)
-		(if (numberp y) (length (format "%s" y)) (length y))))
+		(length (pg-glue-view--parse-cell y))))
 	 value))
       (lambda (_x) nil)
       maxes))
@@ -33,15 +45,13 @@
 (defun pg-glue-view/format-cell (plist padding-spec key)
   "Create a padded cell for KEY from PLIST.
 The max values for key from PADDING-SPEC is used to calcuate padding."
-  (let* ((cell-string (or (pg-glue-utils/get plist key) ""))
+  (let* ((cell (pg-glue-view--parse-cell (or (pg-glue-utils/get plist key) "")))
 	 (pad-amount (thread-last
-		       cell-string
-		       (format "%s")
-		       string-trim
+		       cell
 		       length
 		       (- (or (pg-glue-utils/get padding-spec key) 0))
 		       (+ 1))))
-    (format "%s%s" cell-string (make-string pad-amount ?\ ))))
+    (format "%s%s" cell (make-string pad-amount ?\ ))))
 
 (defconst pg-glue-view/red "#f5e0dc")
 (defconst pg-glue-view/light-blue "#89dceb")
