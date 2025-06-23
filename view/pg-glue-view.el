@@ -209,7 +209,8 @@ NOTE: QUERY-RESULTS has to be returned as ':table from pg-query-query/query."
 				      columns)
 				     "|")))
 			  query-results))
-	 (body (reverse (cons divider (reverse formatted-rows)))))
+	 (total (format "rows: %s" (length query-results)))
+	 (body (reverse (cons total (cons divider (reverse formatted-rows))))))
     (string-join
      (cons divider (cons header (cons divider body)))
      "\n")))
