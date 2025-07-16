@@ -24,6 +24,14 @@
 ;;;;;;;;;;;
 ;;; connect
 
+(defun pg-glue--connect-internal (one-pass-item)
+  "Connect to the database specified by ONE-PASS-ITEM."
+  (cl-destructuring-bind
+	(&key database server username password port &allow-other-keys)
+      (one-pass/get-item one-pass-item)
+    (pg-glue-connect/set! database username password server port t)
+    (pg-glue-metadata/set! pg-glue/connection)))
+
 ;;;###autoload
 (defun pg-glue/connect (one-pass-item)
   "Connect to the database specified by ONE-PASS-ITEM."
@@ -31,18 +39,18 @@
    (list
     (completing-read
      "db: " (one-pass/list-items :categories '("database")) nil t)))
-  (cl-destructuring-bind
-	(&key database server username password port &allow-other-keys)
-      (one-pass/get-item one-pass-item)
-    (pg-glue-connect/set! database username password server port t)
-    (pg-glue-metadata/set! pg-glue/connection)))
+  (pg-glue--connect-internal one-pass-item))
 
 (defun pg-glue--ensure-connected ()
   "Ensure that there is a database connection open and create on if not."
-  (unless pg-glue/connection
-    (pg-glue/connect
-     (completing-read
-      "db: " (one-pass/list-items :categories '("database")) nil t))))
+					; add retry on error of broken connection?
+  (condition-case nil
+      (pg-glue-query/query pg-glue/connection "select 1")
+    (error
+     (pg-glue--connect-internal
+      (completing-read
+       "db: " (one-pass/list-items :categories '("database")) nil t)))))
+
 
 ;;;;;;;;;
 ;;; query
