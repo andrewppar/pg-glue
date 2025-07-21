@@ -8,6 +8,7 @@
 ;;
 ;;; Code:
 (require 'cl-lib)
+(require 'json)
 (require 'pg-glue-utils)
 (require 'subr-x)
 
@@ -18,6 +19,8 @@
 	  (format "%s" cell))
 	 ((stringp cell)
 	  cell)
+	 ((hash-table-p obj)
+	  (json-encode obj))
 	 ((and cell (listp cell))
 	  (format-time-string "%Y-%m-%dT%H:%M:%S" (encode-time cell)))
 	 ((not cell)
