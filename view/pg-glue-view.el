@@ -21,6 +21,8 @@
 	  cell)
 	 ((hash-table-p cell)
 	  (json-encode cell))
+	 ((vectorp cell)
+	  (format "%s" cell))
 	 ((and cell (listp cell))
 	  (format-time-string "%Y-%m-%dT%H:%M:%S" (encode-time cell)))
 	 ((not cell)
