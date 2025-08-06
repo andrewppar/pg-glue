@@ -116,19 +116,41 @@ buffer content."
 	   (internal-temp-output-buffer-show ,buffer-var)
 	   (select-window (get-buffer-window ,buffer-name)))))))
 
+(defun pg-glue--query-paragraph ()
+  "Query the model with the content of the current paragraph.
+The function extracts the text from the current paragraph by finding
+its boundaries, then sends this text to the model via `pg-glue/query'."
+  (let ((query nil))
+    (save-excursion
+      (let* ((start (progn (backward-paragraph) (point)))
+	     (end (progn (forward-paragraph) (point))))
+	(setq query (buffer-substring-no-properties start end))))
+    (pg-glue/query query)))
+
+
 ;;;###autoload
 (defun pg-glue/pprint-query-paragraph ()
   "Run the query at point against the current database.
 Display the results as an org mode table in another buffer."
   (interactive)
   (pg-glue--ensure-connected)
-  (let ((query nil))
-    (save-excursion
-      (let* ((start (progn (backward-paragraph) (point)))
-	     (end (progn (forward-paragraph) (point))))
-	(setq query (buffer-substring-no-properties start end))))
-    (with-pg-glue-buffer "*pg-glue result*"
-      (insert (pg-glue-view/query-result (pg-glue/query query))))))
+  (with-pg-glue-buffer "*pg-glue result*"
+    (insert (pg-glue-view/query-result (pg-glue--query-paragraph)))))
+
+;;;###autoload
+(defun pg-glue/comment-query-paragraph ()
+  "Comment out the results of executing the current paragraph as a SQL query.
+Runs the SQL query in the current paragraph, then inserts the results
+as SQL comments (prefixed with '--') after the paragraph."
+  (interactive)
+  (pg-glue--ensure-connected)
+  (let ((query-results (pg-glue-view/query-result (pg-glue--query-paragraph))))
+    (forward-paragraph)
+    (insert "\n")
+    (insert
+     (string-join
+      (mapcar (lambda (line) (format "-- %s" line)) (string-split query-results "\n"))
+      "\n"))))
 
 ;;;###autoload
 (defun pg-glue/schema (schema)
