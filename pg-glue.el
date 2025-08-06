@@ -32,13 +32,24 @@
     (pg-glue-connect/set! database username password server port t)
     (pg-glue-metadata/set! pg-glue/connection)))
 
+(defvar pg-glue--connection-items nil
+  "Internal connections used for database operations.")
+
+(defun pg-glue--connection-items ()
+  "Retrieve PostgreSQL connection items, using cache when available."
+  (or pg-glue--connection-items
+      (progn
+	(setq pg-glue--connection-items
+	      (one-pass/list-items :categories '("database")))
+	pg-glue--connection-items)))
+
 ;;;###autoload
 (defun pg-glue/connect (one-pass-item)
   "Connect to the database specified by ONE-PASS-ITEM."
   (interactive
    (list
     (completing-read
-     "db: " (one-pass/list-items :categories '("database")) nil t)))
+     "db: " (pg-glue--connection-items) nil t)))
   (pg-glue--connect-internal one-pass-item))
 
 (defun pg-glue--ensure-connected ()
