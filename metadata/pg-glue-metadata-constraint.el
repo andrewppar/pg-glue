@@ -57,7 +57,8 @@ Data is added to both the foreign and the domestic tables in METADATA."
 	(foreign-columns (pg-glue-metadata-constraint--columns-for-key
 			  metadata foreign-key-info t))
 	(foreign-table (pg-glue-metadata-constraint--oid->table
-			metadata (pg-glue-utils/get foreign-key-info "confrelid"))))
+			metadata (pg-glue-utils/get foreign-key-info "confrelid")))
+	(delete-rule (pg-glue-utils/get foreign-key-info "delete_rule")))
     (thread-first
       metadata
       (pg-glue-utils/update-in
@@ -66,6 +67,7 @@ Data is added to both the foreign and the domestic tables in METADATA."
 	 (cons
 	  (list
 	   "name" name "columns" domestic-columns
+	   "delete-rule" delete-rule
 	   "foreign-table" foreign-table "foreign-columns" foreign-columns)
 	  keys)))
       (pg-glue-utils/update-in
@@ -74,6 +76,7 @@ Data is added to both the foreign and the domestic tables in METADATA."
 	 (cons
 	  (list
 	   "name" name "columns" foreign-columns
+	   "delete-rule" delete-rule
 	   "domestic-table" domestic-table "domestic-columns" domestic-columns)
 	  keys))))))
 
@@ -93,7 +96,7 @@ Data is added to both the foreign and the domestic tables in METADATA."
       (pg-glue-utils/update-in
        metadata location (lambda (keys) (cons constraint keys))))))
 
-(defun pg-glue-metadata-constriant--add-primary-key
+(defun pg-glue-metadata-constraint--add-primary-key
     (metadata constraint-info)
   "Add a primary key constraint into METADATA with CONSTRAINT-INFO."
   (pg-glue-metadata-constraint--add-unary-table-constraint
@@ -116,9 +119,12 @@ Data is added to both the foreign and the domestic tables in METADATA."
     "  , c.confrelid"
     "  , c.conkey"
     "  , c.confkey"
+    "  , rc.delete_rule"
     "from"
     "  pg_constraint c"
     "  join pg_namespace n on c.connamespace = n.oid"
+    "  left join information_schema.referential_constraints rc"
+    "    on rc.constraint_name = c.conname"
     "where"
     (format "  n.nspname = '%s'" schema)
     "  and c.contype in ('f' , 'u' , 'p')")
@@ -129,7 +135,7 @@ Data is added to both the foreign and the domestic tables in METADATA."
   (seq-reduce
    (lambda (result row)
      (cl-case (pg-glue-utils/get row "contype")
-       (112 (pg-glue-metadata-constriant--add-primary-key result row))
+       (112 (pg-glue-metadata-constraint--add-primary-key result row))
        (117 (pg-glue-metadata-constraint--add-unique-constraint result row))
        (102 (pg-glue-metadata-constraint--add-foreign-key result row))))
    (pg-glue-query/query db (pg-glue-metadata-constraint--constraint-query schema))

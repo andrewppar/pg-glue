@@ -17,6 +17,8 @@
   (string-trim
    (cond ((numberp cell)
 	  (format "%s" cell))
+	 ((booleanp cell)
+	  (if cell "true" "false"))
 	 ((stringp cell)
 	  cell)
 	 ((hash-table-p cell)
@@ -128,6 +130,10 @@ The max values for key from PADDING-SPEC is used to calcuate padding."
 			   (pg-glue-utils/get foreign-key "name")
 			   :red)
 		    :columns (format "%s" (pg-glue-utils/get foreign-key "columns"))
+		    :delete-rule (pg-glue-view--colorize
+				  (if (equal (pg-glue-utils/get foreign-key "delete-rule") "CASCADE")
+				      "on delete cascade" "")
+				  :orange)
 		    :divider divider
 		    :other-table (pg-glue-utils/get foreign-key table-key)
 		    :other-columns (format "%s" (pg-glue-utils/get foreign-key column-key))))
@@ -140,7 +146,7 @@ The max values for key from PADDING-SPEC is used to calcuate padding."
 	 (lambda (result key)
 	   (format "%s%s"
 		   result (pg-glue-view/format-cell foreign-key maxes key)))
-	 (list :name :columns :divider :other-table :other-columns)
+	 (list :name :columns :divider :other-table :other-columns :delete-rule)
 	 ""))
       specs)
      "\n")))
