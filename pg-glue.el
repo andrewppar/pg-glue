@@ -134,8 +134,9 @@ its boundaries, then sends this text to the model via `pg-glue/query'."
 Display the results as an org mode table in another buffer."
   (interactive)
   (pg-glue--ensure-connected)
-  (with-pg-glue-buffer "*pg-glue result*"
-    (insert (pg-glue-view/query-result (pg-glue--query-paragraph)))))
+  (let ((result (pg-glue-view/query-result (pg-glue--query-paragraph))))
+    (with-pg-glue-buffer "*pg-glue result*"
+      (insert result))))
 
 ;;;###autoload
 (defun pg-glue/comment-query-paragraph ()
