@@ -19,8 +19,9 @@
     "  , c.oid"
     "  , a.attname"
     "  , a.attnum"
-    "  , pg_catalog.format_type(a.atttypid , a.atttypmod) type"
-    "  , pg_get_expr(d.adbin , d.adrelid) default"
+    "  , pg_catalog.format_type(a.atttypid , a.atttypmod) as type"
+    "  , pg_get_expr(d.adbin , d.adrelid) as default"
+    "  , a.attgenerated as generated_type"
     "from"
     "  pg_class c"
     "  join pg_namespace n on c.relnamespace = n.oid"
@@ -42,11 +43,21 @@
 	    (oid (pg-glue-utils/get row "oid"))
 	    (attname (pg-glue-utils/get row "attname"))
 	    (attnum (pg-glue-utils/get row "attnum"))
+	    (generated (pcase (pg-glue-utils/get row "generated_type")
+			 (115 "stored")
+			 (_ nil)))
 	    (type (pg-glue-utils/get row "type"))
 	    (default (pg-glue-utils/get row "default"))
-	    (column-base (list "name" attname "number" attnum "type" type))
+	    (column-base (pg-glue-utils/assoc
+			  (list "name" attname "number" attnum "type" type)
+			  "generated" generated))
 	    (column (if default
-			(pg-glue-utils/assoc column-base "default" default)
+			(pg-glue-utils/assoc
+			 (pg-glue-utils/assoc column-base "default-raw" default)
+			 "default"
+			 (if generated
+			     (format "generated always as %s" default)
+			   default))
 		      column-base)))
        (thread-first
 	 result
