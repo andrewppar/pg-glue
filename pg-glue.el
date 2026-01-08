@@ -85,7 +85,7 @@ Optionally run the query displaying FORMAT.  The default is plist."
     (let* ((start (progn (backward-paragraph) (point)))
 	   (end (progn (forward-paragraph) (point)))
 	   (query (buffer-substring-no-properties start end)))
-      (eros--eval-overlay (pg-glue/query query) end))))
+      (eros--make-result-overlay (format "%s" (pg-glue/query query)) :where end))))
 
 ;;;;;;;;;;;;
 ;;; metadata

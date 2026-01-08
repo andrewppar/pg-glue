@@ -99,5 +99,40 @@
 	(pg-glue-utils/get-in
 	 pg-glue/metadata (list schema table "domestic-key"))))
 
+(defun pg-glue-metadata/foreign-tables (schema table)
+  "Retrieve the list of foreign tables linked to the given table.
+SCHEMA is the database schema to which the table belongs.  TABLE is the
+name of the table.  The function collects all foreign tables by accessing
+foreign key metadata."
+  (mapcar
+   (lambda (key)
+     (pg-glue-utils/get key "domestic-table"))
+   (pg-glue-utils/get
+    (pg-glue-metadata/foreign-keys schema table)
+    "foreign-key")))
+
+(defun pg-glue-metadata/foreign-table-closure (schema table)
+  (let ((result '())
+	(todo (list table)))
+    (while todo
+      (let* ((table (car todo))
+	     (new-result (if (member table result)
+			     result
+			   (cons table result)))
+	     (new-todo (seq-reduce
+			(lambda (acc foreign-table)
+			  (if (and (not (member foreign-table acc))
+				   (not (member foreign-table result)))
+			      (cons foreign-table acc)
+			    acc))
+			(pg-glue-metadata/foreign-tables schema table)
+			(cdr todo))))
+	(setq result new-result
+	      todo new-todo)))
+    result))
+
+
+
+
 (provide 'pg-glue-metadata)
 ;;; pg-glue-metadata.el ends here
