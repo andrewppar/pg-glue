@@ -105,12 +105,14 @@ The max values for key from PADDING-SPEC is used to calcuate padding."
 
 (defun pg-glue-view/primary-key (primary-key)
   "Draw a view of PRIMARY-KEY."
-  (let ((name (pg-glue-utils/get primary-key "name"))
+  (if primary-key
+    (let ((name (pg-glue-utils/get primary-key "name"))
 	(columns (pg-glue-utils/get primary-key "columns")))
     (string-join
      (list (pg-glue-view--colorize "primary key" :light-blue)
 	   (format "%s on %s" (pg-glue-view--colorize name :green) columns))
-     "\n")))
+     "\n"))
+    ""))
 
 
 (defun pg-glue-view--keys (foreign-keys direction)
